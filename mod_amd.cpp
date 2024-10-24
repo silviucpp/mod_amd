@@ -1,6 +1,9 @@
 #include <switch.h>
 #include <cmath>
 
+#define MSG_LOG(Severity, Format, ...) switch_log_printf(SWITCH_CHANNEL_LOG, Severity, Format, ##__VA_ARGS__)
+#define MSG_SESSION_LOG(Session, Severity, Format, ...) switch_log_printf(SWITCH_CHANNEL_SESSION_LOG((Session)), Severity, Format, ##__VA_ARGS__)
+
 #define BUG_AMD_NAME_READ "mod_amd_read"
 #define AMD_EVENT_NAME "mod_amd::info"
 
@@ -133,8 +136,10 @@ switch_bool_t amd_handle_silence_frame(amd_vad *vad, const switch_frame_t *f)
 
     if (vad->silence_duration >= vad->params.between_words_silence) 
     {
+#ifdef NDEBUG
         if (vad->state != AmdVadState::IN_SILENCE) 
-            switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "AMD: Changed state to IN_SILENCE\n");
+            MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "AMD: Changed state to IN_SILENCE\n");
+#endif
 
         vad->state = AmdVadState::IN_SILENCE;
         vad->voice_duration = 0;
@@ -143,7 +148,10 @@ switch_bool_t amd_handle_silence_frame(amd_vad *vad, const switch_frame_t *f)
     if (vad->in_initial_silence && vad->silence_duration >= vad->params.initial_silence) 
     {
         const char* result = vad->params.silence_not_sure ? "NOT_SURE" : "MACHINE";
-        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "AMD: %s (silence_duration: %d, initial_silence: %d, silence_not_sure: %d)\n", result, vad->silence_duration, vad->params.initial_silence, vad->params.silence_not_sure);
+#ifdef NDEBUG
+        MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "AMD: %s (silence_duration: %d, initial_silence: %d, silence_not_sure: %d)\n", result, vad->silence_duration, vad->params.initial_silence, vad->params.silence_not_sure);
+#endif
+
         switch_channel_set_variable(vad->channel, "amd_result", result);
         switch_channel_set_variable(vad->channel, "amd_cause", "INITIAL_SILENCE");
         return SWITCH_TRUE;
@@ -151,7 +159,9 @@ switch_bool_t amd_handle_silence_frame(amd_vad *vad, const switch_frame_t *f)
 
     if (vad->silence_duration >= vad->params.after_greeting_silence && vad->in_greeting) 
     {
-        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "AMD: HUMAN (silence_duration: %d, after_greeting_silence: %d)\n", vad->silence_duration, vad->params.after_greeting_silence);
+#ifdef NDEBUG
+        MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "AMD: HUMAN (silence_duration: %d, after_greeting_silence: %d)\n", vad->silence_duration, vad->params.after_greeting_silence);
+#endif
         switch_channel_set_variable(vad->channel, "amd_result", "HUMAN");
         switch_channel_set_variable(vad->channel, "amd_cause", "SILENCE_AFTER_GREETING");
         return SWITCH_TRUE;
@@ -173,7 +183,9 @@ switch_bool_t amd_handle_voiced_frame(amd_vad *vad, const switch_frame_t *f)
 
     if (vad->voice_duration >= vad->params.maximum_word_length) 
     {
-        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "AMD: MACHINE (voice_duration: %d, maximum_word_length: %d)\n", vad->voice_duration, vad->params.maximum_word_length);
+#ifdef NDEBUG
+        MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "AMD: MACHINE (voice_duration: %d, maximum_word_length: %d)\n", vad->voice_duration, vad->params.maximum_word_length);
+#endif
         switch_channel_set_variable(vad->channel, "amd_result", "MACHINE");
         switch_channel_set_variable(vad->channel, "amd_cause", "MAX_WORD_LENGTH");
         return SWITCH_TRUE;
@@ -181,7 +193,9 @@ switch_bool_t amd_handle_voiced_frame(amd_vad *vad, const switch_frame_t *f)
 
     if (vad->words >= vad->params.maximum_number_of_words) 
     {
-        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session),SWITCH_LOG_DEBUG, "AMD: MACHINE (words: %d, maximum_number_of_words: %d)\n", vad->words, vad->params.maximum_number_of_words);
+#ifdef NDEBUG
+        MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "AMD: MACHINE (words: %d, maximum_number_of_words: %d)\n", vad->words, vad->params.maximum_number_of_words);
+#endif
         switch_channel_set_variable(vad->channel, "amd_result", "MACHINE");
         switch_channel_set_variable(vad->channel, "amd_cause", "MAX_WORDS");
         return SWITCH_TRUE;
@@ -189,7 +203,9 @@ switch_bool_t amd_handle_voiced_frame(amd_vad *vad, const switch_frame_t *f)
 
     if (vad->in_greeting && vad->voice_duration >= vad->params.greeting) 
     {
-        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "AMD: MACHINE (voice_duration: %d, greeting: %d)\n", vad->voice_duration, vad->params.greeting);
+#ifdef NDEBUG
+        MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "AMD: MACHINE (voice_duration: %d, greeting: %d)\n", vad->voice_duration, vad->params.greeting);
+#endif
         switch_channel_set_variable(vad->channel, "amd_result", "MACHINE");
         switch_channel_set_variable(vad->channel, "amd_cause", "LONG_GREETING");
         return SWITCH_TRUE;
@@ -197,9 +213,10 @@ switch_bool_t amd_handle_voiced_frame(amd_vad *vad, const switch_frame_t *f)
 
     if (vad->voice_duration >= vad->params.minimum_word_length) 
     {
+#ifdef NDEBUG
         if (vad->silence_duration) 
-            switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "AMD: Detected Talk, previous silence duration: %dms\n", vad->silence_duration);
-
+             MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "AMD: Detected Talk, previous silence duration: %dms\n", vad->silence_duration);
+#endif
         vad->silence_duration = 0;
     }
 
@@ -234,7 +251,7 @@ switch_bool_t amd_read_audio_callback(switch_media_bug_t *bug, void *user_data, 
                 if (result == NULL) 
                 {
                     result = "NOT_SURE";
-                    switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_WARNING, "variable amd_result not defined. set amd_result=NOT_SURE\n");
+                    MSG_SESSION_LOG(vad->session, SWITCH_LOG_WARNING, "variable amd_result not defined. set amd_result=NOT_SURE\n");
                     switch_channel_set_variable(vad->channel, "amd_result", "NOT_SURE");
                     switch_channel_set_variable(vad->channel, "amd_cause", "TOO_LONG");
                 }
@@ -242,23 +259,25 @@ switch_bool_t amd_read_audio_callback(switch_media_bug_t *bug, void *user_data, 
                 amd_fire_event(vad->channel);
 
                 if (!strcasecmp(result, "MACHINE"))
-                    do_execute(vad->session, vad->channel, "amd_on_machine");
+                    do_execute(vad->session, vad->channel, "mod_amd_on_machine");
                 else if (!strcasecmp(result, "HUMAN"))
-                    do_execute(vad->session, vad->channel, "amd_on_human");
+                    do_execute(vad->session, vad->channel, "mod_amd_on_human");
                 else
-                    do_execute(vad->session, vad->channel, "amd_on_not_sure");
+                    do_execute(vad->session, vad->channel, "mod_amd_on_not_sure");
             }
             else 
             {
                 if (!switch_channel_get_variable(vad->channel, "amd_result")) 
                 {
-                    switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "variable amd_result not defined. set amd_result=CANCEL\n");
+                    MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "variable amd_result not defined. set amd_result=CANCEL\n");
                     switch_channel_set_variable(vad->channel, "amd_result", "CANCEL");
                     switch_channel_set_variable(vad->channel, "amd_cause", "CANCEL");
                 }
             }
 
-            switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "AMD: close\n");
+#ifdef NDEBUG 
+            MSG_SESSION_LOG(vad->session, SWITCH_LOG_DEBUG, "AMD: close\n");
+#endif
             break;
 
         case SWITCH_ABC_TYPE_READ_PING:
@@ -318,7 +337,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_amd_load)
     memset(&globals, 0, sizeof(globals));
     if (switch_xml_config_parse_module_settings("mod_amd.conf", SWITCH_FALSE, config_options) != SWITCH_STATUS_SUCCESS) 
     {
-        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to load config\n");
+        MSG_LOG(SWITCH_LOG_ERROR, "Failed to load config\n");
         return SWITCH_STATUS_FALSE;
     }
 
@@ -343,7 +362,7 @@ SWITCH_STANDARD_APP(amd_start_function)
 
     if (!switch_channel_media_up(channel) || !switch_core_session_get_read_codec(session)) 
     {
-        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "Can not record session.  Media not enabled on channel\n");
+        MSG_SESSION_LOG(session, SWITCH_LOG_ERROR, "Can not record session.  Media not enabled on channel\n");
         return;
     }
 
@@ -436,13 +455,13 @@ SWITCH_STANDARD_APP(amd_start_function)
                 }
 
                 if (value > 0) 
-                    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "AMD: Apply [%s]=[%d]\n", param[0], value);
+                    MSG_SESSION_LOG(session, SWITCH_LOG_INFO, "AMD: Apply [%s]=[%d]\n", param[0], value);
                 else
-                    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "AMD: Invalid [%s]=[%s]; Value must be positive integer only!\n", param[0], param[1]);
+                    MSG_SESSION_LOG(session, SWITCH_LOG_ERROR, "AMD: Invalid [%s]=[%s]; Value must be positive integer only!\n", param[0], param[1]);
             } 
             else 
             {
-                switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "AMD: Ignore argument [%s]\n", argv[x]);
+                MSG_SESSION_LOG(session, SWITCH_LOG_ERROR, "AMD: Ignore argument [%s]\n", argv[x]);
             }
         }
     }
@@ -451,7 +470,7 @@ SWITCH_STANDARD_APP(amd_start_function)
 
     if (switch_core_media_bug_add(session, BUG_AMD_NAME_READ, NULL, amd_read_audio_callback, vad, 0, SMBF_READ_STREAM | SMBF_READ_PING, &bug) != SWITCH_STATUS_SUCCESS ) 
     {
-        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "Can not add media bug.  Media not enabled on channel\n");
+        MSG_SESSION_LOG(session, SWITCH_LOG_ERROR, "Can not add media bug.  Media not enabled on channel\n");
         return;
     }
 }
