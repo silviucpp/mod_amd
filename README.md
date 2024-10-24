@@ -59,12 +59,12 @@ The variable `amd_result` will contain one of the following values:
 
 The variable `amd_cause` will return one of the following values:
 
-- INITIAL_SILENCE (MACHINE)
-- SILENCE_AFTER_GREETING (HUMAN)
-- MAX_WORD_LENGTH (MACHINE)
-- MAX_WORDS (MACHINE)
-- LONG_GREETING (MACHINE)
-- TOO_LONG (NOTSURE)
+- `INITIAL_SILENCE` (MACHINE)
+- `SILENCE_AFTER_GREETING` (HUMAN)
+- `MAX_WORD_LENGTH` (MACHINE)
+- `MAX_WORDS` (MACHINE)
+- `LONG_GREETING` (MACHINE)
+- `TOO_LONG` (NOTSURE)
 
 # Usage
 
