@@ -43,8 +43,8 @@ switch_xml_config_item_t config_options[] = {
         SWITCH_CONFIG_ITEM_END()
 };
 
-enum class AmdFrameClassifier {VOICED, SILENCE};
-enum class AmdVadState {IN_WORD, IN_SILENCE};
+enum class AmdFrameClassifier { VOICED, SILENCE };
+enum class AmdVadState { IN_WORD, IN_SILENCE };
 
 struct amd_vad {
     switch_core_session_t* session;
@@ -90,7 +90,7 @@ void do_execute(switch_core_session_t *session, switch_channel_t *channel, const
     char *arg = nullptr;
     bool bg = false;
 
-    for(char* p = app; p && *p; p++) 
+    for (char* p = app; p && *p; p++) 
     {
         if (*p == ' ' || (*p == ':' && (*(p+1) != ':'))) 
         {
@@ -124,10 +124,7 @@ AmdFrameClassifier classify_frame(uint32_t silence_threshold, const switch_frame
 
     uint32_t score = static_cast<uint32_t>(energy / frame->samples);
 
-    if (score >= silence_threshold)
-        return AmdFrameClassifier::VOICED;
-
-    return AmdFrameClassifier::SILENCE;
+    return score >= silence_threshold ? AmdFrameClassifier::VOICED : AmdFrameClassifier::SILENCE;
 }
 
 switch_bool_t amd_handle_silence_frame(amd_vad *vad, const switch_frame_t *f)
