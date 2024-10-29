@@ -67,7 +67,7 @@ struct amd_vad {
 void amd_fire_event(switch_channel_t *channel) 
 {
     switch_event_t* event;
-    switch_status_t status = switch_event_create_subclass(&event, SWITCH_EVENT_CLONE, AMD_EVENT_NAME);
+    switch_status_t status = switch_event_create_subclass(&event, SWITCH_EVENT_CUSTOM, AMD_EVENT_NAME);
 
     if (status != SWITCH_STATUS_SUCCESS)
         return;
@@ -308,7 +308,7 @@ switch_bool_t amd_read_audio_callback(switch_media_bug_t *bug, void *user_data, 
                 case AmdFrameClassifier::SILENCE:
                     switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(vad->session), SWITCH_LOG_DEBUG, "AMD: Silence\n");
                     if (amd_handle_silence_frame(vad, &read_frame) == SWITCH_TRUE)
-                        return SWITCH_FALSE;        
+                        return SWITCH_FALSE;
                     break;
 
                 case AmdFrameClassifier::VOICED:
@@ -449,6 +449,7 @@ SWITCH_STANDARD_APP(amd_start_function)
                 else if (!strcasecmp(param[0], "silence_not_sure")) 
                 {
                     vad->params.silence_not_sure = switch_true(param[1]);
+                    value = vad->params.silence_not_sure;
                 }
 
                 if (value > 0) 
