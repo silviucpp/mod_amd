@@ -296,7 +296,7 @@ switch_bool_t amd_read_audio_callback(switch_media_bug_t *bug, void *user_data, 
                 if (vad->sample_count_limit <= 0) 
                 {
                     switch_channel_set_variable(vad->channel, "amd_result", "NOT_SURE");
-                    switch_channel_set_variable(vad->channel, "amd_cause", "TOOLONG");
+                    switch_channel_set_variable(vad->channel, "amd_cause", "TOO_LONG");
                     return SWITCH_FALSE;
                 }
             }
@@ -449,12 +449,10 @@ SWITCH_STANDARD_APP(amd_start_function)
                 else if (!strcasecmp(param[0], "silence_not_sure")) 
                 {
                     vad->params.silence_not_sure = switch_true(param[1]);
-                    value = vad->params.silence_not_sure;
+                    value = 1;
                 }
 
-                if (value > 0) 
-                    MSG_SESSION_LOG(session, SWITCH_LOG_INFO, "AMD: Apply [%s]=[%d]\n", param[0], value);
-                else
+                if (value < 1)
                     MSG_SESSION_LOG(session, SWITCH_LOG_ERROR, "AMD: Invalid [%s]=[%s]; Value must be positive integer only!\n", param[0], param[1]);
             } 
             else 
